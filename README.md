@@ -1,5 +1,7 @@
 # Easy Stackdriver Logging on Google App Engine Standard second generation runtimes
 
+[![GoDoc](https://godoc.org/github.com/mtraver/gaelog?status.svg)](https://godoc.org/github.com/mtraver/gaelog)
+
 Using Stackdriver Logging on App Engine Standard is complicated. It doesn't
 have to be that way.
 
