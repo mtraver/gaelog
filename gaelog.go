@@ -13,8 +13,9 @@ import (
 )
 
 const (
-	// Each logging.Logger must use this ID for logs to be correlated with requests.
-	logID = "app_logs"
+	// All instances of logging.Logger will use this name. Request logs are logged under
+	// the name "request_log", so use "app_log" for consistency.
+	logID = "app_log"
 
 	traceContextHeaderName = "X-Cloud-Trace-Context"
 )
