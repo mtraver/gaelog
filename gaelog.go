@@ -41,13 +41,14 @@ type Logger struct {
 	trace  string
 }
 
-// New creates a new Logger. The Logger will be valid in all cases, even when the error is
-// non-nil. In the case of a non-nil error the Logger will fall back to the standard library's
-// "log" package. The Logger is initialized using three environment variables that are present
-// on App Engine: GOOGLE_CLOUD_PROJECT, GAE_SERVICE, and GAE_VERSION. There are three cases in
-// which the error will be non-nil: (1) any of the aforementioned environment variables are not
-// set, (2) the given http.Request does not have the X-Cloud-Trace-Context header, or (3)
-// initialization of the underlying Stackdriver Logging client produced an error.
+// New creates a new Logger. The Logger is initialized using three environment variables
+// that are present on App Engine: GOOGLE_CLOUD_PROJECT, GAE_SERVICE, and GAE_VERSION.
+// The Logger will be valid in all cases, even when the error is non-nil. In the case of
+// a non-nil error the Logger will fall back to the standard library's "log" package.
+// There are three cases in which the error will be non-nil: (1) any of the aforementioned
+// environment variables are not set, (2) the given http.Request does not have the
+// X-Cloud-Trace-Context header, or (3) initialization of the underlying Stackdriver
+// Logging client produced an error.
 func New(r *http.Request) (*Logger, error) {
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID == "" {
