@@ -49,7 +49,14 @@ type Logger struct {
 // environment variables are not set, (2) the given http.Request does not have the
 // X-Cloud-Trace-Context header, or (3) initialization of the underlying Stackdriver
 // Logging client produced an error.
-func New(r *http.Request) (*Logger, error) {
+//
+// Options (of type LoggerOption, from cloud.google.com/go/logging) will be passed through
+// to the underlying Stackdriver Logging client. Note that the option CommonResource will
+// have no effect because the MonitoredResource is set when each log entry is made, thus
+// overriding any value set with CommonResource. This is as intended: much of the value of
+// this package is in setting up the MonitoredResource so that log entries correlate with
+// requests.
+func New(r *http.Request, options ...logging.LoggerOption) (*Logger, error) {
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID == "" {
 		return &Logger{}, &envVarError{"GOOGLE_CLOUD_PROJECT"}
@@ -86,7 +93,7 @@ func New(r *http.Request) (*Logger, error) {
 
 	return &Logger{
 		client: client,
-		logger: client.Logger(logID),
+		logger: client.Logger(logID, options...),
 		monRes: monRes,
 		trace:  traceID(projectID, strings.Split(traceContext, "/")[0]),
 	}, nil
