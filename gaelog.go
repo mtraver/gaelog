@@ -13,9 +13,10 @@ import (
 )
 
 const (
-	// All instances of logging.Logger will use this name. Request logs are logged under
-	// the name "request_log", so use "app_log" for consistency.
-	logID = "app_log"
+	// The default log ID of the underlying Stackdriver Logging logger. Request logs
+	// are logged under the ID "request_log", so use "app_log" for consistency. To use
+	// a different ID create your logger with NewWithID.
+	DefaultLogID = "app_log"
 
 	traceContextHeaderName = "X-Cloud-Trace-Context"
 )
@@ -50,13 +51,15 @@ type Logger struct {
 // X-Cloud-Trace-Context header, or (3) initialization of the underlying Stackdriver
 // Logging client produced an error.
 //
+// The given log ID will be passed through to the underlying Stackdriver Logging logger.
+//
 // Options (of type LoggerOption, from cloud.google.com/go/logging) will be passed through
-// to the underlying Stackdriver Logging client. Note that the option CommonResource will
+// to the underlying Stackdriver Logging logger. Note that the option CommonResource will
 // have no effect because the MonitoredResource is set when each log entry is made, thus
 // overriding any value set with CommonResource. This is as intended: much of the value of
 // this package is in setting up the MonitoredResource so that log entries correlate with
 // requests.
-func New(r *http.Request, options ...logging.LoggerOption) (*Logger, error) {
+func NewWithID(r *http.Request, logID string, options ...logging.LoggerOption) (*Logger, error) {
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID == "" {
 		return &Logger{}, &envVarError{"GOOGLE_CLOUD_PROJECT"}
@@ -97,6 +100,11 @@ func New(r *http.Request, options ...logging.LoggerOption) (*Logger, error) {
 		monRes: monRes,
 		trace:  traceID(projectID, strings.Split(traceContext, "/")[0]),
 	}, nil
+}
+
+// New is identical to NewWithID with the exception that it uses the default log ID.
+func New(r *http.Request, options ...logging.LoggerOption) (*Logger, error) {
+	return NewWithID(r, DefaultLogID, options...)
 }
 
 // Close closes the Logger, ensuring all logs are flushed and closing the underlying
