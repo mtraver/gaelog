@@ -42,23 +42,28 @@ type Logger struct {
 	trace  string
 }
 
-// New creates a new Logger. The Logger is initialized using three environment variables
-// that are present on App Engine: GOOGLE_CLOUD_PROJECT, GAE_SERVICE, and GAE_VERSION.
-// The Logger will be valid in all cases, even when the error is non-nil. In the case of
-// a non-nil error the Logger will fall back to the standard library's "log" package.
-// There are three cases in which the error will be non-nil: (1) any of the aforementioned
-// environment variables are not set, (2) the given http.Request does not have the
-// X-Cloud-Trace-Context header, or (3) initialization of the underlying Stackdriver
-// Logging client produced an error.
+// New creates a new Logger. The Logger is initialized using environment variables that are
+// present on App Engine:
+//
+//   • GOOGLE_CLOUD_PROJECT
+//   • GAE_SERVICE
+//   • GAE_VERSION
 //
 // The given log ID will be passed through to the underlying Stackdriver Logging logger.
 //
-// Options (of type LoggerOption, from cloud.google.com/go/logging) will be passed through
-// to the underlying Stackdriver Logging logger. Note that the option CommonResource will
-// have no effect because the MonitoredResource is set when each log entry is made, thus
-// overriding any value set with CommonResource. This is as intended: much of the value of
-// this package is in setting up the MonitoredResource so that log entries correlate with
-// requests.
+// Additionally, options (of type LoggerOption, from cloud.google.com/go/logging) will be passed
+// through to the underlying Stackdriver Logging logger. Note that the option CommonResource will
+// have no effect because the MonitoredResource is set when each log entry is made, thus overriding
+// any value set with CommonResource. This is intended: much of the value of this package is in
+// setting up the MonitoredResource so that log entries correlate with requests.
+//
+// The Logger will be valid in all cases, even when the error is non-nil. In the case of a non-nil
+// error the Logger will fall back to the standard library's "log" package. There are three cases
+// in which the error will be non-nil:
+//
+//   1. Any of the aforementioned environment variables are not set.
+//   2. The given http.Request does not have the X-Cloud-Trace-Context header.
+//   3. Initialization of the underlying Stackdriver Logging client produced an error.
 func NewWithID(r *http.Request, logID string, options ...logging.LoggerOption) (*Logger, error) {
 	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
 	if projectID == "" {
