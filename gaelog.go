@@ -13,9 +13,9 @@ import (
 )
 
 const (
-	// The default log ID of the underlying Stackdriver Logging logger. Request logs
-	// are logged under the ID "request_log", so use "app_log" for consistency. To use
-	// a different ID create your logger with NewWithID.
+	// DefaultLogID is the default log ID of the underlying Stackdriver Logging logger. Request
+	// logs are logged under the ID "request_log", so use "app_log" for consistency. To use a
+	// different ID create your logger with NewWithID.
 	DefaultLogID = "app_log"
 
 	traceContextHeaderName = "X-Cloud-Trace-Context"
@@ -42,7 +42,7 @@ type Logger struct {
 	trace  string
 }
 
-// New creates a new Logger. The Logger is initialized using environment variables that are
+// NewWithID creates a new Logger. The Logger is initialized using environment variables that are
 // present on App Engine:
 //
 //   • GOOGLE_CLOUD_PROJECT
