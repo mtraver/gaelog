@@ -1,14 +1,14 @@
 module github.com/mtraver/gaelog
 
 require (
-	cloud.google.com/go v0.44.3 // indirect
+	cloud.google.com/go v0.45.1 // indirect
 	cloud.google.com/go/logging v1.0.0
 	github.com/google/go-cmp v0.3.1 // indirect
-	github.com/hashicorp/golang-lru v0.5.3 // indirect
+	go.opencensus.io v0.22.1 // indirect
 	golang.org/x/net v0.0.0-20190827160401-ba9fcec4b297 // indirect
-	golang.org/x/sys v0.0.0-20190902133755-9109b7679e13 // indirect
-	google.golang.org/api v0.9.0 // indirect
+	golang.org/x/sys v0.0.0-20190904154756-749cb33beabd // indirect
+	google.golang.org/api v0.10.0 // indirect
 	google.golang.org/appengine v1.6.2 // indirect
-	google.golang.org/genproto v0.0.0-20190819201941-24fa4b261c55
+	google.golang.org/genproto v0.0.0-20190905072037-92dd089d5514
 	google.golang.org/grpc v1.23.0 // indirect
 )
