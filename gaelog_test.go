@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"net/http/httptest"
 	"os"
-	"reflect"
 	"testing"
 
+	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
 )
 
@@ -83,8 +83,8 @@ func TestNew(t *testing.T) {
 				Type: "gae_app",
 			}
 			if !c.expectErr && err == nil {
-				if !reflect.DeepEqual(lg.monRes, expectedMonRes) {
-					t.Errorf("Expected: %v\n\nGot: %v", expectedMonRes, lg.monRes)
+				if diff := pretty.Compare(lg.monRes, expectedMonRes); diff != "" {
+					t.Errorf("Unexpected result (-got +want):\n%s", diff)
 				}
 
 				if lg.client == nil {
