@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"cloud.google.com/go/logging"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
@@ -130,10 +131,11 @@ func (lg *Logger) Logf(severity logging.Severity, format string, v ...interface{
 	}
 
 	lg.logger.Log(logging.Entry{
-		Severity: severity,
-		Payload:  fmt.Sprintf(format, v...),
-		Trace:    lg.trace,
-		Resource: lg.monRes,
+		Timestamp: time.Now(),
+		Severity:  severity,
+		Payload:   fmt.Sprintf(format, v...),
+		Trace:     lg.trace,
+		Resource:  lg.monRes,
 	})
 }
 
@@ -187,10 +189,11 @@ func (lg *Logger) Log(severity logging.Severity, v interface{}) {
 	}
 
 	lg.logger.Log(logging.Entry{
-		Severity: severity,
-		Payload:  v,
-		Trace:    lg.trace,
-		Resource: lg.monRes,
+		Timestamp: time.Now(),
+		Severity:  severity,
+		Payload:   v,
+		Trace:     lg.trace,
+		Resource:  lg.monRes,
 	})
 }
 
