@@ -62,16 +62,17 @@ func main() {
 
 1. **Request log (aka parent) severity is not set.**
 A nice property of `google.golang.org/appengine/log` is that the severity of the request log entry (aka
-parent log entry) is set to the maximum severity of the log entries correlated with it. This makes it easy
+parent entry) is set to the maximum severity of the log entries correlated with it. This makes it easy
 to see in the Stackdriver UI which requests have logs associated with them, and at which severity. Alas, that
 is not possible with this package. App Engine itself makes the request log entries and it does not know about
-any entries created separately (such as with this package). Furthermore, entries cannot be modified after they
-are created. A possible remedy is for this package to emit request log entries of its own; open an issue if
-you'd like this and we can discuss.
+any correlated entries created separately (such as with this package). Furthermore, entries cannot be modified
+after they are created. A possible remedy is for this package to emit request log entries of its own; open an
+issue if you'd like this and we can discuss.
 
-1. **If a request has any log entries made by `google.golang.org/appengine/log`, then
-entries made by this package will not be correlated (i.e. nested) with the request in
-the Stackdriver Logging UI.**
-The corollary is that requests that have any log entries emitted by App Engine itself, such as requests
-that time out or requests that start up a new instance, are also subject to this limitation. It seems
-like a bug in Stackdriver.
+1. **If a request has any log entries made by `google.golang.org/appengine/log` or App Engine itself,
+then entries made by this package will not be correlated (i.e. nested) with the request in the Stackdriver
+Logging UI.**
+Such logs are "embedded" logs—if you expand the request log entry you'll see the other log lines embedded
+there in the data structure. Embedded and correlated logs do not play nicely together. An annoying consequence
+is that requests that start a new instance or that time out will not be correlated with logs emitted via this
+package because App Engine adds embedded logs on such requests. This issue is not solvable in this package.
