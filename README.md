@@ -18,7 +18,41 @@ import (
   "github.com/mtraver/gaelog"
 )
 
-func index(w http.ResponseWriter, r *http.Request) {
+// wrappedHandler must be wrapped using gaelog.Wrap or gaelog.WrapWithID so that the
+// request context can be used with the package-level logging functions.
+type wrappedHandler struct{}
+
+func (h wrappedHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+  if r.URL.Path != "/" {
+    http.NotFound(w, r)
+    return
+  }
+
+  ctx := r.Context()
+
+  gaelog.Debugf(ctx, "Debug")
+  gaelog.Infof(ctx, "Info")
+  gaelog.Noticef(ctx, "Notice")
+  gaelog.Warningf(ctx, "Warning")
+  gaelog.Errorf(ctx, "Error")
+  gaelog.Criticalf(ctx, "Critical")
+  gaelog.Alertf(ctx, "Alert")
+  gaelog.Emergencyf(ctx, "Emergency")
+
+  message := struct {
+    Places []string
+  }{
+    []string{"Kings Canyon", "Sequoia", "Yosemite", "Death Valley"},
+  }
+
+  gaelog.Info(ctx, message)
+
+  fmt.Fprintf(w, "Hello!")
+}
+
+// manualHandler creates and closes a logger manually. This usage does not require
+// gaelog.Wrap or gaelog.WrapWithID.
+func manualHandler(w http.ResponseWriter, r *http.Request) {
   lg, err := gaelog.New(r)
   if err != nil {
     // The returned logger is valid despite the error. It falls back to logging
@@ -27,26 +61,16 @@ func index(w http.ResponseWriter, r *http.Request) {
   }
   defer lg.Close()
 
-  lg.Debugf("Debug")
-  lg.Infof("Info")
-  lg.Noticef("Notice")
-  lg.Warningf("Warning")
-  lg.Errorf("Error")
-  lg.Criticalf("Critical")
-  lg.Alertf("Alert")
-  lg.Emergencyf("Emergency")
+  lg.Warningf("Some important info right here, that's for sure")
 
-  message := struct {
-    Places []string
-  }{
-    []string{"Kings Canyon", "Sequoia", "Yosemite", "Death Valley"},
-  }
-
-  lg.Info(message)
+  fmt.Fprintf(w, "Hello!")
 }
 
 func main() {
-  http.HandleFunc("/", index)
+  // Wrap the handler.
+  http.Handle("/", gaelog.Wrap(wrappedHandler{}))
+
+  http.HandleFunc("/manual", manualHandler)
 
   port := os.Getenv("PORT")
   if port == "" {
