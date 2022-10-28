@@ -1,6 +1,6 @@
 module github.com/mtraver/gaelog
 
-go 1.15
+go 1.16
 
 require (
 	cloud.google.com/go v0.103.0 // indirect
