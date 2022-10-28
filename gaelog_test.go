@@ -22,6 +22,18 @@ const (
 	testProjectIDMetadataServer = "my-project-from-metadata-server"
 )
 
+func setEnvVars(vars map[string]string) func() {
+	for k, v := range vars {
+		os.Setenv(k, v)
+	}
+
+	return func() {
+		for k, _ := range vars {
+			os.Unsetenv(k)
+		}
+	}
+}
+
 func TestTraceID(t *testing.T) {
 	got := traceID(testProjectID, "abcdef0123456789")
 	expected := "projects/" + testProjectID + "/traces/abcdef0123456789"
@@ -143,15 +155,8 @@ func TestNew(t *testing.T) {
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
 			if c.envVars != nil {
-				defer func() {
-					for k, _ := range c.envVars {
-						os.Unsetenv(k)
-					}
-				}()
-
-				for k, v := range c.envVars {
-					os.Setenv(k, v)
-				}
+				unset := setEnvVars(c.envVars)
+				defer unset()
 			}
 
 			r := httptest.NewRequest("GET", "https://example.com", nil)
