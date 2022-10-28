@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"cloud.google.com/go/compute/metadata"
 	"cloud.google.com/go/logging"
 	"google.golang.org/genproto/googleapis/api/monitoredres"
 )
@@ -19,6 +20,14 @@ const (
 	// different ID create your logger with NewWithID.
 	DefaultLogID = "app_log"
 
+	// GAEAppResourceType is the type set on the logger's MonitoredResource for App Engine apps.
+	// This matches the type that App Engine itself assigns to request logs.
+	GAEAppResourceType = "gae_app"
+
+	// CloudRunResourceType is the type set on the logger's MonitoredResource for Cloud Run revisions.
+	// This matches the type that Cloud Run itself assigns to request logs.
+	CloudRunResourceType = "cloud_run_revision"
+
 	traceContextHeaderName = "X-Cloud-Trace-Context"
 )
 
@@ -26,12 +35,60 @@ func traceID(projectID, trace string) string {
 	return fmt.Sprintf("projects/%s/traces/%s", projectID, trace)
 }
 
-type envVarError struct {
-	varName string
+type serviceInfo struct {
+	projectID string
+	resource  *monitoredres.MonitoredResource
 }
 
-func (e *envVarError) Error() string {
-	return fmt.Sprintf("gaelog: %s env var is not set, falling back to standard library log", e.varName)
+func newServiceInfo() (serviceInfo, error) {
+	// First try getting the project ID from the env var it's exposed as on App Engine.
+	gaeProjectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
+	if gaeProjectID != "" {
+		gaeService := os.Getenv("GAE_SERVICE")
+		gaeVersion := os.Getenv("GAE_VERSION")
+		if gaeService == "" || gaeVersion == "" {
+			return serviceInfo{}, fmt.Errorf("gaelog: $GOOGLE_CLOUD_PROJECT is set so $GAE_SERVICE and $GAE_VERSION are expected to be set, but one or both are not. Falling back to standard library log.")
+		}
+
+		return serviceInfo{
+			projectID: gaeProjectID,
+			resource: &monitoredres.MonitoredResource{
+				Labels: map[string]string{
+					"project_id": gaeProjectID,
+					"module_id":  gaeService,
+					"version_id": gaeVersion,
+				},
+				Type: GAEAppResourceType,
+			},
+		}, nil
+	}
+
+	// Try the metadata service for the project ID.
+	crProjectID, err := metadata.ProjectID()
+	if err != nil {
+		return serviceInfo{}, err
+	}
+
+	// We got the project ID, so get and the check the env vars expected to be set on Cloud Run.
+	crService := os.Getenv("K_SERVICE")
+	crRevision := os.Getenv("K_REVISION")
+	crConfiguration := os.Getenv("K_CONFIGURATION")
+	if crService == "" || crRevision == "" || crConfiguration == "" {
+		return serviceInfo{}, fmt.Errorf("gaelog: the project ID was fetched from the metadata service so $K_SERVICE, $K_REVISION, and $K_CONFIGURATION are expected to be set, but one or more are not. Falling back to standard library log.")
+	}
+
+	return serviceInfo{
+		projectID: crProjectID,
+		resource: &monitoredres.MonitoredResource{
+			Labels: map[string]string{
+				"project_id":         crProjectID,
+				"service_name":       crService,
+				"revision_name":      crRevision,
+				"configuration_name": crConfiguration,
+			},
+			Type: CloudRunResourceType,
+		},
+	}, nil
 }
 
 // A Logger logs messages to Stackdriver Logging (though in certain cases it may fall back to the
@@ -66,19 +123,9 @@ type Logger struct {
 //   2. The given http.Request does not have the X-Cloud-Trace-Context header.
 //   3. Initialization of the underlying Stackdriver Logging client produced an error.
 func NewWithID(r *http.Request, logID string, options ...logging.LoggerOption) (*Logger, error) {
-	projectID := os.Getenv("GOOGLE_CLOUD_PROJECT")
-	if projectID == "" {
-		return &Logger{}, &envVarError{"GOOGLE_CLOUD_PROJECT"}
-	}
-
-	serviceID := os.Getenv("GAE_SERVICE")
-	if serviceID == "" {
-		return &Logger{}, &envVarError{"GAE_SERVICE"}
-	}
-
-	versionID := os.Getenv("GAE_VERSION")
-	if versionID == "" {
-		return &Logger{}, &envVarError{"GAE_VERSION"}
+	info, err := newServiceInfo()
+	if err != nil {
+		return &Logger{}, err
 	}
 
 	traceContext := r.Header.Get(traceContextHeaderName)
@@ -86,25 +133,16 @@ func NewWithID(r *http.Request, logID string, options ...logging.LoggerOption) (
 		return &Logger{}, fmt.Errorf("gaelog: %s header is not set, falling back to standard library log", traceContextHeaderName)
 	}
 
-	client, err := logging.NewClient(r.Context(), fmt.Sprintf("projects/%s", projectID))
+	client, err := logging.NewClient(r.Context(), fmt.Sprintf("projects/%s", info.projectID))
 	if err != nil {
 		return &Logger{}, err
-	}
-
-	monRes := &monitoredres.MonitoredResource{
-		Labels: map[string]string{
-			"module_id":  serviceID,
-			"project_id": projectID,
-			"version_id": versionID,
-		},
-		Type: "gae_app",
 	}
 
 	return &Logger{
 		client: client,
 		logger: client.Logger(logID, options...),
-		monRes: monRes,
-		trace:  traceID(projectID, strings.Split(traceContext, "/")[0]),
+		monRes: info.resource,
+		trace:  traceID(info.projectID, strings.Split(traceContext, "/")[0]),
 	}, nil
 }
 

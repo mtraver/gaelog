@@ -1,7 +1,6 @@
 package gaelog
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -13,9 +12,10 @@ import (
 )
 
 const (
-	testProjectID = "my-project"
-	testServiceID = "my-service"
-	testVersionID = "my-version"
+	testProjectID         = "my-project"
+	testServiceID         = "my-service"
+	testVersionID         = "my-version"
+	testConfigurationName = "my-config"
 
 	// testProjectIDMetadataServer is a different project ID that is returned from
 	// the metadata server mock so that the source of the ID may be distinguished.
@@ -51,34 +51,97 @@ func TestNew(t *testing.T) {
 	os.Setenv("GCE_METADATA_HOST", strings.TrimPrefix(server.URL, "http://"))
 
 	cases := []struct {
-		envVars   map[string]string
-		setHeader bool
-		expectErr string
+		name           string
+		envVars        map[string]string
+		setHeader      bool
+		expectResource *monitoredres.MonitoredResource
+		expectErr      string
 	}{
-		{nil, false, "GOOGLE_CLOUD_PROJECT env var is not set"},
-		{nil, true, "GOOGLE_CLOUD_PROJECT env var is not set"},
+		{"no_env_vars_without_header", nil, false, nil, "the project ID was fetched from the metadata service"},
+		{"no_env_vars_with_header", nil, true, nil, "the project ID was fetched from the metadata service"},
 		{
+			"gae_env_vars_with_header",
 			map[string]string{
 				"GOOGLE_CLOUD_PROJECT": testProjectID,
 				"GAE_SERVICE":          testServiceID,
 				"GAE_VERSION":          testVersionID,
 			},
 			true,
+			&monitoredres.MonitoredResource{
+				Labels: map[string]string{
+					"module_id":  testServiceID,
+					"project_id": testProjectID,
+					"version_id": testVersionID,
+				},
+				Type: "gae_app",
+			},
 			"",
 		},
 		{
+			"incomplete_gae_env_vars_with_header",
+			map[string]string{
+				"GOOGLE_CLOUD_PROJECT": testProjectID,
+				"GAE_SERVICE":          testServiceID,
+			},
+			true,
+			nil,
+			"$GAE_SERVICE and $GAE_VERSION are expected to be set",
+		},
+		{
+			"gae_env_vars_without_header",
 			map[string]string{
 				"GOOGLE_CLOUD_PROJECT": testProjectID,
 				"GAE_SERVICE":          testServiceID,
 				"GAE_VERSION":          testVersionID,
 			},
 			false,
+			nil,
+			"X-Cloud-Trace-Context header is not set",
+		},
+
+		{
+			"cloud_run_env_vars_with_header",
+			map[string]string{
+				"K_SERVICE":       testServiceID,
+				"K_REVISION":      testVersionID,
+				"K_CONFIGURATION": testConfigurationName,
+			},
+			true,
+			&monitoredres.MonitoredResource{
+				Labels: map[string]string{
+					"configuration_name": testConfigurationName,
+					"project_id":         testProjectIDMetadataServer,
+					"revision_name":      testVersionID,
+					"service_name":       testServiceID,
+				},
+				Type: "cloud_run_revision",
+			},
+			"",
+		},
+		{
+			"incomplete_cloud_run_env_vars_with_header",
+			map[string]string{
+				"K_SERVICE": testServiceID,
+			},
+			true,
+			nil,
+			"$K_SERVICE, $K_REVISION, and $K_CONFIGURATION are expected to be set",
+		},
+		{
+			"cloud_run_env_vars_without_header",
+			map[string]string{
+				"K_SERVICE":       testServiceID,
+				"K_REVISION":      testVersionID,
+				"K_CONFIGURATION": testConfigurationName,
+			},
+			false,
+			nil,
 			"X-Cloud-Trace-Context header is not set",
 		},
 	}
 
 	for _, c := range cases {
-		t.Run(fmt.Sprintf("vars %v header %v", c.envVars != nil, c.setHeader), func(t *testing.T) {
+		t.Run(c.name, func(t *testing.T) {
 			if c.envVars != nil {
 				defer func() {
 					for k, _ := range c.envVars {
@@ -105,16 +168,8 @@ func TestNew(t *testing.T) {
 				return
 			}
 
-			expectedMonRes := &monitoredres.MonitoredResource{
-				Labels: map[string]string{
-					"module_id":  testServiceID,
-					"project_id": testProjectID,
-					"version_id": testVersionID,
-				},
-				Type: "gae_app",
-			}
 			if c.expectErr == "" && err == nil {
-				if diff := pretty.Compare(lg.monRes, expectedMonRes); diff != "" {
+				if diff := pretty.Compare(lg.monRes, c.expectResource); diff != "" {
 					t.Errorf("Unexpected result (-got +want):\n%s", diff)
 				}
 

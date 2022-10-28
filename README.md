@@ -82,6 +82,50 @@ func main() {
 
 ![Screenshot of logs in Stackdriver UI](images/log_levels.png)
 
+## What's it doing under the hood?
+
+At its core, `gaelog` is setting up the `MonitoredResource` and trace ID of the
+underlying Stackdriver Logging logger. The trace ID is retrieved from the
+`X-Cloud-Trace-Context` header and the app info is retrieved from environment
+variables.
+
+On App Engine the `MonitoredResource` is set as follows to match that set by App Engine
+itself on request logs. The type, `"gae_app"`, is the literal value that App Engine uses
+(and `gaelog` mimics). The other strings below are placeholders for your app's info.
+```
+resource: {
+  labels: {
+    module_id: "my-service-id"
+    project_id: "my-project-id"
+    version_id: "my-version-id"
+  }
+  type: "gae_app"
+}
+```
+
+## Logging on Cloud Run
+
+Imagine you containerize your App Engine app and deploy it to Cloud Run. It would be nice
+if logs were still correlated on Cloud Run, right? Well, they will be. If the app info
+as expected on App Engine is not present then `gaelog` will look up the info as it's
+expected on Cloud Run.
+
+On Cloud Run the `MonitoredResource` is set as follows to match that set by Cloud Run
+itself on request logs. The type, `"cloud_run_revision"`, is the literal value that
+Cloud Run uses (and `gaelog` mimics). The other strings below are placeholders for your
+revision's info.
+```
+resource: {
+  labels: {
+    configuration_name: "my-config-name"
+    project_id: "my-project-id"
+    revision_name: "my-revision"
+    service_name: "my-service"
+  }
+  type: "cloud_run_revision"
+}
+```
+
 ## Known issues
 
 1. **Request log (aka parent) severity is not set.**
