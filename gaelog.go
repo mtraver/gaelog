@@ -107,6 +107,13 @@ type Logger struct {
 //   • GAE_SERVICE
 //   • GAE_VERSION
 //
+// If they are not present then it is initialized using environment variables present on Cloud Run:
+//
+//   • K_SERVICE
+//   • K_REVISION
+//   • K_CONFIGURATION
+//   • Project ID is fetched from the metadata server, not an env var
+//
 // The given log ID will be passed through to the underlying Stackdriver Logging logger.
 //
 // Additionally, options (of type LoggerOption, from cloud.google.com/go/logging) will be passed
