@@ -86,7 +86,7 @@ func newServiceInfo() (serviceInfo, error) {
 		return serviceInfo{}, err
 	}
 
-	// We got the project ID, so get and the check the env vars expected to be set on Cloud Run.
+	// We got the project ID, so get and check the env vars expected to be set on Cloud Run.
 	crService := os.Getenv("K_SERVICE")
 	crRevision := os.Getenv("K_REVISION")
 	crConfiguration := os.Getenv("K_CONFIGURATION")
