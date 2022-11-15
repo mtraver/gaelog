@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"cloud.google.com/go/compute/metadata"
@@ -30,6 +31,22 @@ const (
 
 	traceContextHeaderName = "X-Cloud-Trace-Context"
 )
+
+var (
+	metadataOnce sync.Once
+
+	metadataProjectID    string
+	metadataProjectIDErr error
+)
+
+// projectIDFromMetadataService fetches the project ID from the metadata server,
+// memoizing the result for use on all but the first call.
+func projectIDFromMetadataService() (string, error) {
+	metadataOnce.Do(func() {
+		metadataProjectID, metadataProjectIDErr = metadata.ProjectID()
+	})
+	return metadataProjectID, metadataProjectIDErr
+}
 
 func traceID(projectID, trace string) string {
 	return fmt.Sprintf("projects/%s/traces/%s", projectID, trace)
@@ -64,7 +81,7 @@ func newServiceInfo() (serviceInfo, error) {
 	}
 
 	// Try the metadata service for the project ID.
-	crProjectID, err := metadata.ProjectID()
+	crProjectID, err := projectIDFromMetadataService()
 	if err != nil {
 		return serviceInfo{}, err
 	}
