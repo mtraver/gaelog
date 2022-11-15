@@ -69,8 +69,8 @@ func TestNew(t *testing.T) {
 		expectResource *monitoredres.MonitoredResource
 		expectErr      string
 	}{
-		{"no_env_vars_without_header", nil, false, nil, "the project ID was fetched from the metadata service"},
-		{"no_env_vars_with_header", nil, true, nil, "the project ID was fetched from the metadata service"},
+		{"no_env_vars_without_header", nil, false, nil, "GAE env vars were not set so Cloud Run vars"},
+		{"no_env_vars_with_header", nil, true, nil, "GAE env vars were not set so Cloud Run vars"},
 		{
 			"gae_env_vars_with_header",
 			map[string]string{

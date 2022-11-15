@@ -80,18 +80,18 @@ func newServiceInfo() (serviceInfo, error) {
 		}, nil
 	}
 
-	// Try the metadata service for the project ID.
-	crProjectID, err := projectIDFromMetadataService()
-	if err != nil {
-		return serviceInfo{}, err
-	}
-
-	// We got the project ID, so get and check the env vars expected to be set on Cloud Run.
+	// Get and check the env vars expected to be set on Cloud Run.
 	crService := os.Getenv("K_SERVICE")
 	crRevision := os.Getenv("K_REVISION")
 	crConfiguration := os.Getenv("K_CONFIGURATION")
 	if crService == "" || crRevision == "" || crConfiguration == "" {
-		return serviceInfo{}, fmt.Errorf("gaelog: the project ID was fetched from the metadata service so $K_SERVICE, $K_REVISION, and $K_CONFIGURATION are expected to be set, but one or more are not. Falling back to standard library log.")
+		return serviceInfo{}, fmt.Errorf("gaelog: GAE env vars were not set so Cloud Run vars $K_SERVICE, $K_REVISION, and $K_CONFIGURATION are expected to be set, but one or more are not. Falling back to standard library log.")
+	}
+
+	// Finally, try the metadata service for the project ID.
+	crProjectID, err := projectIDFromMetadataService()
+	if err != nil {
+		return serviceInfo{}, err
 	}
 
 	return serviceInfo{
