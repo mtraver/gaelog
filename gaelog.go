@@ -120,16 +120,16 @@ type Logger struct {
 // NewWithID creates a new Logger. The Logger is initialized using environment variables that are
 // present on App Engine:
 //
-//   • GOOGLE_CLOUD_PROJECT
-//   • GAE_SERVICE
-//   • GAE_VERSION
+//   - GOOGLE_CLOUD_PROJECT
+//   - GAE_SERVICE
+//   - GAE_VERSION
 //
 // If they are not present then it is initialized using environment variables present on Cloud Run:
 //
-//   • K_SERVICE
-//   • K_REVISION
-//   • K_CONFIGURATION
-//   • Project ID is fetched from the metadata server, not an env var
+//   - K_SERVICE
+//   - K_REVISION
+//   - K_CONFIGURATION
+//   - Project ID is fetched from the metadata server, not an env var
 //
 // The given log ID will be passed through to the underlying Stackdriver Logging logger.
 //
@@ -143,9 +143,9 @@ type Logger struct {
 // error the Logger will fall back to the standard library's "log" package. There are three cases
 // in which the error will be non-nil:
 //
-//   1. Any of the aforementioned environment variables are not set.
-//   2. The given http.Request does not have the X-Cloud-Trace-Context header.
-//   3. Initialization of the underlying Stackdriver Logging client produced an error.
+//  1. Any of the aforementioned environment variables are not set.
+//  2. The given http.Request does not have the X-Cloud-Trace-Context header.
+//  3. Initialization of the underlying Stackdriver Logging client produced an error.
 func NewWithID(r *http.Request, logID string, options ...logging.LoggerOption) (*Logger, error) {
 	info, err := newServiceInfo()
 	if err != nil {
